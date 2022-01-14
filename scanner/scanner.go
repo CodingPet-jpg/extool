@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"extool/base"
 	"fmt"
 	"github.com/xuri/excelize/v2"
 	"log"
@@ -19,48 +20,65 @@ const (
 
 // 对传入的行进行指定行为，包括读取和写入
 
-type Action func(file *excelize.File, rows []string, rowNum *int) int
+type Action func(context *Context)
 
 // 封装表格文件和对其采取的行为
+
+type Context struct {
+	SheetName string
+	File      *excelize.File
+	Row       []string
+	RowNum    int
+	Scase     base.Case
+	IsRead    bool
+}
 
 type ActionScanner struct {
 	mode      OpMode
 	abs       string
 	workbook  *excelize.File
-	actions   []Action
+	atos      map[string][]Action
 	sheetName string // current Sheet
 }
 
-func (s *ActionScanner) Scan() {
-	rows, err := s.workbook.Rows(s.sheetName)
-	if err != nil {
-		log.Println(err)
-	}
-	var rowNum = 0
-	for rows.Next() {
-		rowNum++
-		row, err := rows.Columns()
-		if err != nil {
-			fmt.Println(err)
+func (s *ActionScanner) Scan() base.Case {
+	context := Context{File: s.workbook, Scase: base.NewCase(s.abs), IsRead: s.mode == READONLY}
+	for sheetName, actions := range s.atos {
+		if len(actions) == 0 {
+			continue
 		}
-		for i, action := range s.actions {
-			log.Println(i)
-			action(s.workbook, row, &rowNum)
+		context.RowNum = 0
+		context.SheetName = sheetName
+		rows, err := s.workbook.Rows(sheetName)
+		if err != nil {
+			log.Println(err)
+		}
+		for rows.Next() {
+			context.RowNum++
+			row, err := rows.Columns()
+			context.Row = row
+			if err != nil {
+				fmt.Println(err)
+			}
+			for _, action := range actions {
+				action(&context)
+			}
 		}
 	}
 	s.finish()
+	return context.Scase
 }
 
-func New(sheet string, filePath string, mode OpMode) *ActionScanner {
+func New(filePath string, mode OpMode) *ActionScanner {
 	file, err := excelize.OpenFile(filePath)
 	if err != nil {
 		return nil
 	}
-	return &ActionScanner{workbook: file, sheetName: sheet, mode: mode, abs: filePath}
+	return &ActionScanner{workbook: file, mode: mode, abs: filePath, atos: map[string][]Action{}}
 }
 
-func (s *ActionScanner) RegisterAction(action Action) {
-	s.actions = append(s.actions, action)
+func (s *ActionScanner) RegisterAction(sheet string, action Action) {
+	s.atos[sheet] = append(s.atos[sheet], action)
 }
 
 func (s *ActionScanner) finish() {

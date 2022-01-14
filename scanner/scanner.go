@@ -19,7 +19,7 @@ const (
 
 // 对传入的行进行指定行为，包括读取和写入
 
-type Action func(file *excelize.File, rows []string, rowNum int) int
+type Action func(file *excelize.File, rows []string, rowNum *int) int
 
 // 封装表格文件和对其采取的行为
 
@@ -45,7 +45,7 @@ func (s *ActionScanner) Scan() {
 		}
 		for i, action := range s.actions {
 			log.Println(i)
-			rowNum = action(s.workbook, row, rowNum)
+			action(s.workbook, row, &rowNum)
 		}
 	}
 	s.finish()

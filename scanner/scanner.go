@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/xuri/excelize/v2"
 	"log"
+	"os"
 	"path/filepath"
 )
 
@@ -34,45 +35,46 @@ type Context struct {
 }
 
 type ActionScanner struct {
-	mode      OpMode
-	abs       string
-	workbook  *excelize.File
-	atos      map[string][]Action
-	sheetName string // current Sheet
+	mode     OpMode
+	abs      string
+	workbook *excelize.File
+	atos     map[string][]Action
 }
 
-func (s *ActionScanner) Scan() base.Case {
-	context := Context{File: s.workbook, Scase: base.NewCase(s.abs), IsRead: s.mode == READONLY}
+func (s *ActionScanner) Scan(resultHandler func(p base.Case)) {
+	ctx := Context{File: s.workbook, Scase: base.NewCase(s.abs), IsRead: s.mode == READONLY}
 	for sheetName, actions := range s.atos {
 		if len(actions) == 0 {
 			continue
 		}
-		context.RowNum = 0
-		context.SheetName = sheetName
+		ctx.RowNum = 0
+		ctx.SheetName = sheetName
 		rows, err := s.workbook.Rows(sheetName)
 		if err != nil {
 			log.Println(err)
 		}
 		for rows.Next() {
-			context.RowNum++
+			ctx.RowNum++
 			row, err := rows.Columns()
-			context.Row = row
+			ctx.Row = row
 			if err != nil {
 				fmt.Println(err)
 			}
 			for _, action := range actions {
-				action(&context)
+				action(&ctx)
 			}
 		}
 	}
+	if resultHandler != nil {
+		resultHandler(ctx.Scase)
+	}
 	s.finish()
-	return context.Scase
 }
 
 func New(filePath string, mode OpMode) *ActionScanner {
 	file, err := excelize.OpenFile(filePath)
 	if err != nil {
-		return nil
+		fmt.Println(err)
 	}
 	return &ActionScanner{workbook: file, mode: mode, abs: filePath, atos: map[string][]Action{}}
 }
@@ -91,9 +93,18 @@ func (s *ActionScanner) finish() {
 			log.Println(err)
 		}
 	case WRITECOPY:
-		err := s.workbook.SaveAs(filepath.Join(filepath.Dir(s.abs), "new", filepath.Base(s.abs)))
-		if err != nil {
-			log.Println(err)
+		np := filepath.Join(filepath.Dir(filepath.Dir(s.abs)), "copy")
+		errm := os.Mkdir(np, 666)
+		if errm != nil {
+			log.Println(errm)
+		}
+		errs := s.workbook.SaveAs(filepath.Join(np, filepath.Base(s.abs)))
+		if errs != nil {
+			log.Println(errs)
 		}
 	}
+}
+
+func (s *ActionScanner) Valid() bool {
+	return s.workbook != nil
 }

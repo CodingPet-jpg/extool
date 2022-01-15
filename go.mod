@@ -3,7 +3,7 @@ module extool
 go 1.18
 
 require (
-	github.com/xuri/excelize/v2 v2.5.0
+	github.com/xuri/excelize/v2 v2.4.1
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 )
 

@@ -7,10 +7,10 @@ import (
 
 func GetCaseParseHandler() scanner.Action {
 	return func(ctx *scanner.Context) {
-		if len(ctx.Row) < base.Cfg.Length {
+		if len(ctx.Row) < 4 {
 			return
 		}
-		var entry = make([]string, 0, 4)
+		var entry = make([]string, 0, 8)
 		for i, col := range ctx.Row {
 			// append target column each row into string slice
 			if base.Cfg.HitIndex(uint64(i)) {

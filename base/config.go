@@ -9,7 +9,6 @@ import (
 type Config struct {
 	Sheet   string   `yaml:"ActiveSheet"`
 	Bitmap  uint64   `yaml:"BitMap"`
-	Length  int      `yaml:"Length,omitempty"`
 	WorkDir string   `yaml:"WorkDirectory"`
 	Pn      int      `yaml:"ParallelNum"`
 	Is      []string `yaml:"InheritSource"`
@@ -17,7 +16,7 @@ type Config struct {
 
 // default 4,can be overwritten by yml
 
-var Cfg = Config{Length: 4}
+var Cfg = Config{}
 
 func init() {
 	yml, err := ioutil.ReadFile("config.yml")
@@ -30,7 +29,8 @@ func init() {
 }
 
 func (config *Config) HitIndex(i uint64) bool {
-	return config.Bitmap&(1<<i) != 0
+	//return config.Bitmap&(1<<i) != 0
+	return true
 }
 
 // defined as variable for easy switch when doing test

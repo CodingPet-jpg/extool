@@ -232,24 +232,16 @@ func (w *Walker) GoWalkDir(workDir string) *Walker {
 
 func (w *Walker) Report() {
 	log.Printf("All task completed\n"+
+		"  <Spend Time:%s>\n"+
 		"  <Dir Count:%d>\n"+
 		"  <Total File Count:%d>\n"+
 		"  <Handled File Count:%d>\n"+
 		"  <Failed File Count:%d>\n",
-
-		w.dirCount, w.fileCount, w.walkedCount, w.failedCount)
+		time.Since(w.startTime), w.dirCount, w.fileCount, w.walkedCount, w.failedCount)
 
 	if w.caseComparer != nil {
 		fmt.Printf("  <Remaining File Count:%d>\n", w.caseComparer.Chain.Len())
-	}
-
-	fmt.Printf("  <Spend Time:%s>\n", time.Since(w.startTime))
-
-	if w.caseComparer != nil {
 		log.Println("Taking a while to generate the report")
-	}
-
-	if w.caseComparer != nil {
 		var location string
 		switch w.mode {
 		case WRITECOPY:

@@ -1,19 +1,19 @@
 package formal
 
 import (
-	"extool/base"
-	"extool/scanner"
+	"extool/action"
+	"extool/module"
 	"github.com/xuri/excelize/v2"
 	"log"
 )
 
-func GetSlashFixHandler() scanner.Action {
+var SlashFixAction = func() action.Action {
 	const (
 		replaceChar   = "-"
 		columnStepNoS = "J"
 		columnStepNoI = 9
 	)
-	return func(ctx *scanner.Context) {
+	return func(ctx *action.Context) {
 		if len(ctx.Row) > columnStepNoI && ctx.Row[columnStepNoI] == "" {
 			ctx.Row[columnStepNoI] = replaceChar
 		} else if len(ctx.Row) == columnStepNoI {
@@ -21,10 +21,10 @@ func GetSlashFixHandler() scanner.Action {
 		} else {
 			return
 		}
-		if !ctx.IsRead {
+		if !ctx.IsReaOnly {
 			axis, _ := excelize.JoinCellName(columnStepNoS, ctx.RowNum)
 			err := ctx.File.SetCellStr(ctx.SheetName, axis, replaceChar)
-			base.SetDefaultStyle(ctx.File, axis, ctx.SheetName)
+			module.SetDefaultStyle(ctx.File, axis, ctx.SheetName)
 			if err != nil {
 				log.Println(err)
 			}

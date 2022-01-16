@@ -224,11 +224,20 @@ func (w *Walker) Report() {
 		"  <Dir Count:%d>\n"+
 		"  <Total File Count:%d>\n"+
 		"  <Handled File Count:%d>\n"+
-		"  <Failed File Count:%d>\n"+
-		"  <Remaining File Count:%d>\n"+
-		"  <Spend Time:%s>\n"+
-		"Taking a while to generate the report\n",
-		w.dirCount, w.fileCount, w.walkedCount, w.failedCount, w.caseComparer.Chain.Len(), time.Since(w.startTime))
+		"  <Failed File Count:%d>\n",
+
+		w.dirCount, w.fileCount, w.walkedCount, w.failedCount)
+
+	if w.caseComparer != nil {
+		log.Printf("  <Remaining File Count:%d>\n", w.caseComparer.Chain.Len())
+	}
+
+	log.Printf("  <Spend Time:%s>\n", time.Since(w.startTime))
+
+	if w.caseComparer != nil {
+		log.Println("Taking a while to generate the report")
+	}
+
 	if w.caseComparer != nil {
 		var location string
 		switch w.mode {

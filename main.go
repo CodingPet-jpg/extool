@@ -12,6 +12,7 @@ func main() {
 	walker.NewWalker(walker.WRITECOPY).
 		RegisterAction(module.Sheet1, formal.StepNoFixAction).
 		RegisterAction(module.Sheet1, formal.SlashFixAction).
-		WithCaseCompare().GoWalkDir(config.Cfg.WorkDir).Report()
+		//WithCaseCompare().
+		GoWalkDir(config.Cfg.WorkDir).Report()
 
 }

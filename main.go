@@ -14,5 +14,4 @@ func main() {
 		RegisterAction(module.Sheet1, formal.SlashFixAction).
 		//WithCaseCompare().
 		GoWalkDir(config.Cfg.WorkDir).Report()
-
 }

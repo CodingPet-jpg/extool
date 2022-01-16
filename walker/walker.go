@@ -187,16 +187,18 @@ func (w *Walker) inheritSource() {
 
 func (w *Walker) GoWalkDir(workDir string) *Walker {
 	w.workDir = workDir
-	np := filepath.Join(filepath.Dir(w.workDir), "copy")
-	errm := os.Mkdir(np, os.ModeDir)
-	if errm != nil {
-		if errors.Is(errm, syscall.ERROR_ALREADY_EXISTS) {
-			// Noop
-		} else {
-			log.Println(errm)
+	if w.mode == WRITECOPY {
+		np := filepath.Join(filepath.Dir(w.workDir), "copy")
+		errm := os.Mkdir(np, os.ModeDir)
+		if errm != nil {
+			if errors.Is(errm, syscall.ERROR_ALREADY_EXISTS) {
+				// Noop
+			} else {
+				log.Println(errm)
+			}
 		}
+		w.saveAs = np
 	}
-	w.saveAs = np
 
 	dirFunc, waiter := wrappedWalkFunc(w.dirFunc)
 
@@ -229,10 +231,10 @@ func (w *Walker) Report() {
 		w.dirCount, w.fileCount, w.walkedCount, w.failedCount)
 
 	if w.caseComparer != nil {
-		log.Printf("  <Remaining File Count:%d>\n", w.caseComparer.Chain.Len())
+		fmt.Printf("  <Remaining File Count:%d>\n", w.caseComparer.Chain.Len())
 	}
 
-	log.Printf("  <Spend Time:%s>\n", time.Since(w.startTime))
+	fmt.Printf("  <Spend Time:%s>\n", time.Since(w.startTime))
 
 	if w.caseComparer != nil {
 		log.Println("Taking a while to generate the report")
@@ -260,7 +262,9 @@ func (w *Walker) Report() {
 		}
 		defer func() {
 			err := f.Close()
-			log.Println(err)
+			if err != nil {
+				log.Println(err)
+			}
 		}()
 		bufc := make(chan *bytes.Buffer, 16)
 		wg := sync.WaitGroup{}
@@ -285,6 +289,12 @@ func (w *Walker) Report() {
 
 		log.Printf("Detailed report located at %s\n", absoluteFilePath)
 	}
+	if w.saveAs != "" {
+		log.Printf("All file located at %s\n", w.saveAs)
+	} else {
+		log.Printf("All file located at %s\n", w.workDir)
+	}
+	log.Println("Have a nice day!!")
 }
 
 // wrap the dirFunc,provide following mechanism

@@ -51,7 +51,7 @@ func NewWalker(mode OpMode) *Walker {
 		actionMap:   make(map[string][]func() action.Action, 4),
 		mode:        mode,
 	}
-	walker.startTime = time.Now()
+
 	walker.dirFunc = func(path string, d fs.DirEntry, err error) error {
 		if !d.IsDir() && !strings.HasPrefix(d.Name(), "~") && (strings.HasSuffix(d.Name(), ".xlsm") || strings.HasSuffix(d.Name(), ".xlsx")) {
 			atomic.AddInt64(&walker.walkedCount, 1)
@@ -187,6 +187,7 @@ func (w *Walker) inheritSource() {
 
 func (w *Walker) GoWalkDir(workDir string) *Walker {
 	w.workDir = workDir
+	w.startTime = time.Now()
 	if w.mode == WRITECOPY {
 		np := filepath.Join(filepath.Dir(w.workDir), "copy")
 		errm := os.Mkdir(np, os.ModeDir)

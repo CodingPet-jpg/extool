@@ -156,9 +156,9 @@ func (w *Walker) WithCaseCompare() *Walker {
 	return w
 }
 
-func (w *Walker) inheritSource() {
+func (w *Walker) inheritSourceBackGround() func() {
 	var inheritSource = config.Cfg.InheritSource
-
+	var wg sync.WaitGroup
 	if len(inheritSource) > 0 {
 		if len(inheritSource) > 8 {
 			log.Fatalln("Only support inheritance report within 8 files")
@@ -174,12 +174,17 @@ func (w *Walker) inheritSource() {
 				if i == 0 {
 					w.caseComparer.Chain.PushBack(ucase)
 				} else {
+					wg.Add(1)
 					go func() {
 						w.caseComparer.Parsed <- ucase
+						wg.Done()
 					}()
 				}
 			}
 		}
+	}
+	return func() {
+		wg.Done()
 	}
 }
 
@@ -203,10 +208,11 @@ func (w *Walker) GoWalkDir(workDir string) *Walker {
 
 	dirFunc, waiter := wrappedWalkFunc(w.dirFunc)
 
-	var finish = func() {}
+	var finish1, finish2 = func() {}, func() {}
+
 	if w.caseComparer != nil {
-		w.inheritSource()
-		finish = w.caseComparer.StartCompareBackGround()
+		finish1 = w.inheritSourceBackGround()
+		finish2 = w.caseComparer.StartCompareBackGround()
 	}
 
 	err := filepath.WalkDir(workDir, dirFunc)
@@ -218,7 +224,9 @@ func (w *Walker) GoWalkDir(workDir string) *Walker {
 	for _, callback := range w.callbacks {
 		callback()
 	}
-	finish()
+
+	finish1()
+	finish2()
 	return w
 }
 

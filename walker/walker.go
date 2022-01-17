@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"extool/action"
-	"extool/action/approximate"
+	"extool/action/compare"
 	"extool/config"
 	"extool/module"
 	"fmt"
@@ -32,7 +32,7 @@ const (
 type Walker struct {
 	actionMap    map[string][]func() action.Action
 	listenerMap  map[string][]func() action.Listener
-	caseComparer *approximate.CaseComparer
+	caseComparer *compare.CaseComparer
 	dirFunc      fs.WalkDirFunc
 	mode         OpMode
 	workDir      string
@@ -59,7 +59,7 @@ func NewWalker(mode OpMode) *Walker {
 			file, err := excelize.OpenFile(path)
 			if err != nil {
 				atomic.AddInt64(&walker.failedCount, 1)
-				log.Println(err)
+				log.Printf("%s : %v\n", path, err)
 				return nil
 			}
 			// pose action per sheet
@@ -73,7 +73,10 @@ func NewWalker(mode OpMode) *Walker {
 				ctx.SheetName = sheetName // populate sheet name
 				rows, err := file.Rows(sheetName)
 				if err != nil {
-					log.Println(err)
+					if _, ok := err.(excelize.ErrSheetNotExist); ok {
+						continue
+					}
+					log.Printf("%s : %v\n", path, err)
 				}
 				var actions = make([]action.Action, 0, 4)
 				for _, producer := range producers {
@@ -83,7 +86,7 @@ func NewWalker(mode OpMode) *Walker {
 					ctx.RowNum++ // populate current row number
 					row, err := rows.Columns()
 					if err != nil {
-						fmt.Println(err)
+						log.Printf("%s : %v\n", path, err)
 					}
 					ctx.Row = row // populate current row info
 					// just do it
@@ -101,7 +104,7 @@ func NewWalker(mode OpMode) *Walker {
 			case WRITESOURCE:
 				err := file.Save()
 				if err != nil {
-					log.Println(err)
+					log.Printf("%s : %v\n", path, err)
 				}
 			case WRITECOPY:
 				rel, _ := filepath.Rel(walker.workDir, path)
@@ -110,11 +113,11 @@ func NewWalker(mode OpMode) *Walker {
 					if errors.Is(errs, syscall.ENOTDIR) {
 						rel, err2 := filepath.Rel(walker.workDir, filepath.Dir(path))
 						if err2 != nil {
-							log.Println(err2)
+							log.Printf("%s : %v\n", path, err2)
 						}
 						err := os.MkdirAll(filepath.Join(walker.saveAs, rel), os.ModeDir)
 						if err != nil && !errors.Is(err, syscall.ERROR_ALREADY_EXISTS) {
-							log.Println(err)
+							log.Printf("%s : %v\n", path, err)
 						}
 					}
 				}
@@ -147,9 +150,9 @@ func (w *Walker) RegisterCallBack(callback func()) *Walker {
 }
 
 func (w *Walker) WithCaseCompare() *Walker {
-	w.caseComparer = approximate.NewCaseComparer()
+	w.caseComparer = compare.NewCaseComparer()
 	CaseFeedListener := w.caseComparer.GetCaseFeedListener()
-	w.RegisterAction(module.Sheet1, approximate.CaseParseAction).
+	w.RegisterAction(module.Sheet1, compare.Sheet1ParseAction).
 		RegisterListener(module.Sheet1, CaseFeedListener).
 		RegisterCallBack(w.caseComparer.Close)
 
@@ -166,7 +169,7 @@ func (w *Walker) inheritSourceBackGround() func() {
 		for i, s := range inheritSource {
 			f, err := os.Open(s)
 			if err != nil {
-				log.Println(err)
+				log.Printf("%s : %v\n", s, err)
 			}
 			scanner := bufio.NewScanner(f)
 			for scanner.Scan() {
@@ -200,7 +203,7 @@ func (w *Walker) GoWalkDir(workDir string) *Walker {
 			if errors.Is(errm, syscall.ERROR_ALREADY_EXISTS) {
 				// Noop
 			} else {
-				log.Println(errm)
+				log.Printf("%s : %v\n", np, errm)
 			}
 		}
 		w.saveAs = np
@@ -217,7 +220,7 @@ func (w *Walker) GoWalkDir(workDir string) *Walker {
 
 	err := filepath.WalkDir(workDir, dirFunc)
 	if err != nil {
-		log.Println(err)
+		log.Printf("walkdir : %v\n", err)
 	}
 
 	waiter()
@@ -264,7 +267,7 @@ func (w *Walker) Report() {
 		defer func() {
 			err := f.Close()
 			if err != nil {
-				log.Println(err)
+				log.Printf("Failed to close report:%v\n", err)
 			}
 		}()
 		bufc := make(chan *bytes.Buffer, 16)
@@ -284,7 +287,7 @@ func (w *Walker) Report() {
 		for buf := range bufc {
 			_, err := f.Write([]byte(buf.String()))
 			if err != nil {
-				log.Println(err)
+				log.Printf("Failed to write report:%v\n", err)
 			}
 		}
 

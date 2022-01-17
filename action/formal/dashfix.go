@@ -13,9 +13,17 @@ var SlashFixAction = func() action.Action {
 		columnStepNoS = "J"
 		columnStepNoI = 9
 	)
+	var header = 0
 	return func(ctx *action.Context) {
-		if len(ctx.Row) > columnStepNoI && ctx.Row[columnStepNoI] == "" {
-			ctx.Row[columnStepNoI] = replaceChar
+		// skip the header
+		if len(ctx.Row) > columnStepNoI {
+			if header < 2 {
+				header++
+				return
+			}
+			if ctx.Row[columnStepNoI] == "" {
+				ctx.Row[columnStepNoI] = replaceChar
+			}
 		} else if len(ctx.Row) == columnStepNoI {
 			ctx.Row = append(ctx.Row, replaceChar)
 		} else {
@@ -26,7 +34,7 @@ var SlashFixAction = func() action.Action {
 			err := ctx.File.SetCellStr(ctx.SheetName, axis, replaceChar)
 			module.SetDefaultStyle(ctx.File, axis, ctx.SheetName)
 			if err != nil {
-				log.Println(err)
+				log.Printf("%s : %v\n", ctx.File.Path, err)
 			}
 		}
 	}

@@ -13,14 +13,19 @@ import (
 
 var StepNoFixAction = func() action.Action {
 	var expectStepNo = 1
+	var header = 0
 	const (
 		columnStepNoS = "C"
 		columnStepNoI = 2
 	)
 	return func(ctx *action.Context) {
-		if len(ctx.Row) <= columnStepNoI {
+		if len(ctx.Row) < 10 {
 			expectStepNo = 1
 		} else {
+			if header < 2 {
+				header++
+				return
+			}
 			i, _ := strconv.Atoi(ctx.Row[columnStepNoI])
 			if i != expectStepNo {
 				ctx.Row[columnStepNoI] = strconv.Itoa(expectStepNo)
@@ -29,7 +34,7 @@ var StepNoFixAction = func() action.Action {
 					err := ctx.File.SetCellInt(ctx.SheetName, axis, expectStepNo)
 					module.SetDefaultStyle(ctx.File, axis, ctx.SheetName)
 					if err != nil {
-						log.Println(err)
+						log.Printf("%s : %v\n", ctx.File.Path, err)
 					}
 				}
 			}

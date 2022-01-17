@@ -1,4 +1,4 @@
-package approximate
+package compare
 
 import (
 	"extool/action"

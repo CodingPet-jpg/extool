@@ -187,7 +187,7 @@ func (w *Walker) inheritSourceBackGround() func() {
 		}
 	}
 	return func() {
-		wg.Done()
+		wg.Wait()
 	}
 }
 

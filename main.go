@@ -10,8 +10,6 @@ import (
 func main() {
 
 	walker.NewWalker(walker.WRITECOPY).
-		RegisterAction(module.Sheet1, formal.StepNoFixAction).
-		RegisterAction(module.Sheet1, formal.SlashFixAction).
-		WithCaseCompare().
-		GoWalkDir(config.Cfg.WorkDir).Report()
+		RegisterAction(module.Sheet1, formal.StepNameFixAction).
+		GoWalkDir(config.Cfg.WorkDir)
 }

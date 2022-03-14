@@ -119,6 +119,8 @@ func NewWalker(mode OpMode) *Walker {
 						if err != nil && !errors.Is(err, syscall.ERROR_ALREADY_EXISTS) {
 							log.Printf("%s : %v\n", path, err)
 						}
+					}else{
+						log.Printf("%s : %v\n", path, err)
 					}
 				}
 			}
